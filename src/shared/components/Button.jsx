@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion'
+
 /**
  * FortiPass — Reusable Button Component
  * Variants: primary, secondary, danger, ghost
@@ -17,12 +19,15 @@ export default function Button({
   }
 
   return (
-    <button
+    <motion.button
+      whileHover={!disabled ? { scale: 1.02 } : {}}
+      whileTap={!disabled ? { scale: 0.98 } : {}}
+      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
       className={`px-4 py-2 rounded-xl text-sm transition-all duration-200 ${variants[variant]} ${disabled ? 'opacity-40 cursor-not-allowed' : ''} ${className}`}
       disabled={disabled}
       {...props}
     >
       {children}
-    </button>
+    </motion.button>
   )
 }

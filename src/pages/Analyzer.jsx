@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from '@/shared/hooks/useTheme'
 import { TOAST_DURATION } from '@/config/constants'
 import { copyToClipboard } from '@/shared/utils/helpers'
@@ -20,6 +21,21 @@ import ApiKeyPanel from '@/features/security/components/ApiKeyPanel'
 
 // Shared
 import Toast from '@/shared/components/Toast'
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
+  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
+}
 
 /**
  * Analyzer Page — Main password analysis interface
@@ -56,59 +72,102 @@ export default function Analyzer() {
 
   return (
     <>
-      {/* Main analyzer card */}
-      <div className={`glass-card rounded-2xl p-6 flex flex-col gap-5 section-appear ${theme === 'light' ? 'bg-white/80 border-slate-200' : ''}`}>
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="flex flex-col gap-6 w-full max-w-4xl mx-auto"
+      >
+        {/* Main analyzer card */}
+        <motion.div 
+          className={`glass-card rounded-2xl p-6 flex flex-col gap-5 ${theme === 'light' ? 'bg-white/90 border-slate-200 shadow-sm' : ''}`}
+          layout
+        >
+          <PasswordInput
+            value={password}
+            onChange={setPassword}
+            onCopy={() => handleCopy(password)}
+          />
 
-        <PasswordInput
-          value={password}
-          onChange={setPassword}
-          onCopy={() => handleCopy(password)}
-        />
+          <AnimatePresence mode="popLayout">
+            {password && analysis && (
+              <motion.div 
+                key="strength-meter"
+                variants={itemVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                layout
+              >
+                <StrengthMeter analysis={analysis} />
+                <CrackTime crackTime={analysis.crackTime} textColor={analysis.textColor} />
+              </motion.div>
+            )}
 
-        {password && analysis && (
-          <div className="section-appear">
-            <StrengthMeter analysis={analysis} />
-            <CrackTime crackTime={analysis.crackTime} textColor={analysis.textColor} />
-          </div>
+            {password && analysis && analysis.issues.length > 0 && (
+              <motion.div key="issues" variants={itemVariants} initial="hidden" animate="show" exit="exit" layout>
+                <IssuesPanel issues={analysis.issues} />
+              </motion.div>
+            )}
+
+            {password && analysis && analysis.suggestions.length > 0 && (
+              <motion.div key="suggestions" variants={itemVariants} initial="hidden" animate="show" exit="exit" layout>
+                <RecommendationsPanel suggestions={analysis.suggestions} />
+              </motion.div>
+            )}
+
+            {/* AI Risk Assessment */}
+            {password && analysis && (
+              <motion.div key="auditor" variants={itemVariants} initial="hidden" animate="show" exit="exit" layout>
+                <SecurityAuditor analysis={analysis} apiKey={apiKey} />
+              </motion.div>
+            )}
+            
+            {(password || breachLoading) && (
+              <motion.div key="breach" variants={itemVariants} initial="hidden" animate="show" exit="exit" layout>
+                <BreachStatus loading={breachLoading} breach={breach} count={breachCount} active={!!password} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Password Generator */}
+        <motion.div 
+          variants={itemVariants}
+          className={`glass-card rounded-2xl p-6 ${theme === 'light' ? 'bg-white/90 border-slate-200 shadow-sm' : ''}`}
+        >
+          <PasswordGenerator
+            options={genOptions}
+            setOptions={setGenOptions}
+            onGenerate={handleGenerate}
+            generatedPwd={generatedPwd}
+            onCopy={() => handleCopy(generatedPwd)}
+            onUsePassword={() => {
+              if (generatedPwd) {
+                setPassword(generatedPwd)
+                showToast('Password loaded into analyzer', 'info')
+              }
+            }}
+          />
+        </motion.div>
+
+        <motion.div variants={itemVariants}>
+          <ApiKeyPanel apiKey={apiKey} setApiKey={setApiKey} />
+        </motion.div>
+      </motion.div>
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-4 right-4 z-50"
+          >
+            <Toast msg={toast.msg} type={toast.type} />
+          </motion.div>
         )}
-
-        {password && analysis && analysis.issues.length > 0 && (
-          <IssuesPanel issues={analysis.issues} />
-        )}
-
-        {password && analysis && analysis.suggestions.length > 0 && (
-          <RecommendationsPanel suggestions={analysis.suggestions} />
-        )}
-
-        {/* AI Risk Assessment — only shown when key is set and password entered */}
-        {password && analysis && (
-          <SecurityAuditor analysis={analysis} apiKey={apiKey} />
-        )}
-
-        <BreachStatus loading={breachLoading} breach={breach} count={breachCount} active={!!password} />
-      </div>
-
-      {/* Password Generator */}
-      <div className={`glass-card rounded-2xl p-6 section-appear ${theme === 'light' ? 'bg-white/80 border-slate-200' : ''}`}>
-        <PasswordGenerator
-          options={genOptions}
-          setOptions={setGenOptions}
-          onGenerate={handleGenerate}
-          generatedPwd={generatedPwd}
-          onCopy={() => handleCopy(generatedPwd)}
-          onUsePassword={() => {
-            if (generatedPwd) {
-              setPassword(generatedPwd)
-              showToast('Password loaded into analyzer', 'info')
-            }
-          }}
-        />
-      </div>
-
-      {/* API Key panel */}
-      <ApiKeyPanel apiKey={apiKey} setApiKey={setApiKey} />
-
-      {toast && <Toast msg={toast.msg} type={toast.type} />}
+      </AnimatePresence>
     </>
   )
 }
