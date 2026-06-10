@@ -178,7 +178,6 @@ Use tools like:
 * Frontend: Vercel / Netlify
 * Backend: Render / Railway
 * Database: MongoDB Atlas
-
 ---
 
 ## 👨‍💻 Author
