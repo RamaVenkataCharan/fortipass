@@ -34,7 +34,7 @@ FortiPass is a full-stack cybersecurity web application designed to analyze pass
 * Secure user registration & login
 * JWT-based authentication
 * Protected routes
-
+ 
 ---
 
 ## 🏗️ Tech Stack
